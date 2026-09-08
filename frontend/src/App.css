@@ -1,0 +1,17 @@
+#center {
+  max-width: 640px;
+  margin: 10vh auto 0;
+  padding: 0 24px;
+  text-align: center;
+  font-family: system-ui, sans-serif;
+}
+
+#center h1 {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+#center p {
+  font-size: 1.1rem;
+  color: #555;
+}
