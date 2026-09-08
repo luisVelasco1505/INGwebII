@@ -1,11 +1,11 @@
-from flask import Flask, jsonify
+from flask import Flask
+
+from app.routes.health import health_bp
 
 
 def create_app():
     app = Flask(__name__)
 
-    @app.route('/health')
-    def health():
-        return jsonify(status='ok')
+    app.register_blueprint(health_bp)
 
     return app

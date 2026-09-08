@@ -1,0 +1,27 @@
+openapi: 3.0.3
+info:
+  title: Sistema de Gestión de Proyectos y Tareas
+  description: API REST para gestión de proyectos y tareas.
+  version: 0.1.0
+
+servers:
+  - url: http://127.0.0.1:5000
+    description: Servidor de desarrollo local
+
+paths:
+  /health:
+    get:
+      summary: Verifica el estado del servidor
+      tags:
+        - Health
+      responses:
+        '200':
+          description: El servidor está funcionando correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
