@@ -8,7 +8,7 @@ import PetsPage from './pages/PetsPage'
 import './App.css'
 
 const SESSIONS = [
-  { id: 1, title: 'Entorno y primer backend', detail: 'Flask + /health' },
+  { id: 1, title: 'Entorno y primer backend', detail: 'Django REST Framework + /health' },
   {
     id: 2,
     title: 'Modelo de datos y JWT',
@@ -21,7 +21,7 @@ const SESSIONS = [
   },
 ]
 
-const STACK = ['React', 'Vite', 'Flask', 'SQLAlchemy', 'JWT']
+const STACK = ['React', 'Vite', 'Django', 'DRF', 'JWT']
 
 const TABS = [
   { id: 'clients', label: 'Clientes' },
@@ -77,7 +77,7 @@ function App() {
         <h1>Sistema de Control Veterinario</h1>
         <p className="lead">
           Gestión de clientes, mascotas y citas para una clínica veterinaria.
-          Backend en Flask con autenticación JWT, frontend en React.
+          Backend en Django REST Framework con autenticación JWT, frontend en React.
         </p>
         <StatusBadge state={state} />
         {detail && <code className="detail">{detail}</code>}
