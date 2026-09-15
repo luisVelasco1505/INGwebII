@@ -488,7 +488,7 @@ components:
         client_id:
           type: integer
           nullable: true
-          description: Solo para rol "client": id del Client vinculado.
+          description: 'Solo para rol "client": id del Client vinculado.'
         created_at:
           type: string
           format: date-time
