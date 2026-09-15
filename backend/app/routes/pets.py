@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt, jwt_required
 
 from app.auth import role_required
 from app.errors import bad_request, not_found
@@ -13,16 +13,22 @@ pets_bp = Blueprint('pets', __name__, url_prefix='/pets')
 @pets_bp.route('', methods=['GET'])
 @jwt_required()
 def list_pets():
+    claims = get_jwt()
     query = Pet.query
-    client_id = request.args.get('client_id', type=int)
-    if client_id is not None:
-        query = query.filter_by(client_id=client_id)
+
+    if claims.get('role') == 'client':
+        query = query.filter_by(client_id=claims.get('client_id'))
+    else:
+        client_id = request.args.get('client_id', type=int)
+        if client_id is not None:
+            query = query.filter_by(client_id=client_id)
+
     pets = query.order_by(Pet.id).all()
     return jsonify([p.to_dict() for p in pets])
 
 
 @pets_bp.route('', methods=['POST'])
-@jwt_required()
+@role_required('admin', 'vet')
 def create_pet():
     data = request.get_json(silent=True) or {}
     name = (data.get('name') or '').strip()
@@ -56,11 +62,16 @@ def get_pet(pet_id):
     pet = db.session.get(Pet, pet_id)
     if not pet:
         return not_found('Mascota no encontrada')
+
+    claims = get_jwt()
+    if claims.get('role') == 'client' and pet.client_id != claims.get('client_id'):
+        return jsonify(error='No tenés permisos para ver esta mascota'), 403
+
     return jsonify(pet.to_dict())
 
 
 @pets_bp.route('/<int:pet_id>', methods=['PUT'])
-@jwt_required()
+@role_required('admin', 'vet')
 def update_pet(pet_id):
     pet = db.session.get(Pet, pet_id)
     if not pet:

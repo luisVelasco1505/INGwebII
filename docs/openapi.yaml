@@ -4,7 +4,11 @@ info:
   description: >
     API REST para que una clínica veterinaria gestione clientes (dueños de
     mascotas), mascotas y el historial de citas/consultas. Requiere
-    autenticación JWT; solo el rol admin puede eliminar registros.
+    autenticación JWT. Hay tres roles: admin y vet (staff, con
+    lectura/escritura completa; solo admin puede eliminar) y client (dueño de
+    mascota, acceso de solo lectura limitado a sus propios datos: las listas
+    y detalles de /clients, /pets y /appointments quedan automáticamente
+    filtrados a lo suyo, y no puede usar POST/PUT/DELETE).
   version: 0.1.0
 
 servers:
@@ -63,6 +67,65 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/register-client:
+    post:
+      summary: Autorregistro de un cliente (dueño de mascota) con su mascota
+      description: >
+        Registro público que crea (o reutiliza, si el email coincide con un
+        cliente ya cargado por el staff) el registro de Client, crea la
+        mascota indicada y crea el usuario con rol "client" vinculado a ese
+        cliente. Devuelve token igual que /auth/login.
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, pet]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                phone:
+                  type: string
+                address:
+                  type: string
+                pet:
+                  type: object
+                  required: [name, species]
+                  properties:
+                    name:
+                      type: string
+                    species:
+                      type: string
+                      enum: [perro, gato, otro]
+                    breed:
+                      type: string
+                    age:
+                      type: integer
+                    weight:
+                      type: number
+      responses:
+        '201':
+          description: Cuenta y mascota creadas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
         '400':
           $ref: '#/components/responses/BadRequest'
 
@@ -421,7 +484,11 @@ components:
           type: string
         role:
           type: string
-          enum: [admin, vet]
+          enum: [admin, vet, client]
+        client_id:
+          type: integer
+          nullable: true
+          description: Solo para rol "client": id del Client vinculado.
         created_at:
           type: string
           format: date-time

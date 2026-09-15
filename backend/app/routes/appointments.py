@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt, jwt_required
 
 from app.auth import role_required
 from app.errors import bad_request, not_found
@@ -22,19 +22,25 @@ def parse_date(value):
 @appointments_bp.route('', methods=['GET'])
 @jwt_required()
 def list_appointments():
+    claims = get_jwt()
     query = Appointment.query
+
+    if claims.get('role') == 'client':
+        query = query.join(Pet).filter(Pet.client_id == claims.get('client_id'))
+
     pet_id = request.args.get('pet_id', type=int)
     status = request.args.get('status')
     if pet_id is not None:
-        query = query.filter_by(pet_id=pet_id)
+        query = query.filter(Appointment.pet_id == pet_id)
     if status is not None:
-        query = query.filter_by(status=status)
+        query = query.filter(Appointment.status == status)
+
     appointments = query.order_by(Appointment.id).all()
     return jsonify([a.to_dict() for a in appointments])
 
 
 @appointments_bp.route('', methods=['POST'])
-@jwt_required()
+@role_required('admin', 'vet')
 def create_appointment():
     data = request.get_json(silent=True) or {}
     pet_id = data.get('pet_id')
@@ -69,11 +75,18 @@ def get_appointment(appointment_id):
     appointment = db.session.get(Appointment, appointment_id)
     if not appointment:
         return not_found('Cita no encontrada')
+
+    claims = get_jwt()
+    if claims.get('role') == 'client':
+        pet = db.session.get(Pet, appointment.pet_id)
+        if not pet or pet.client_id != claims.get('client_id'):
+            return jsonify(error='No tenés permisos para ver esta cita'), 403
+
     return jsonify(appointment.to_dict())
 
 
 @appointments_bp.route('/<int:appointment_id>', methods=['PUT'])
-@jwt_required()
+@role_required('admin', 'vet')
 def update_appointment(appointment_id):
     appointment = db.session.get(Appointment, appointment_id)
     if not appointment:

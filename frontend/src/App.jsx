@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { getHealth, getStoredUser, getToken, logout } from './api'
-import Login from './Login'
+import AuthGate from './AuthGate'
+import AppointmentsPage from './pages/AppointmentsPage'
+import ClientDashboard from './pages/ClientDashboard'
+import ClientsPage from './pages/ClientsPage'
+import PetsPage from './pages/PetsPage'
 import './App.css'
 
 const SESSIONS = [
@@ -10,10 +14,20 @@ const SESSIONS = [
     title: 'Modelo de datos y JWT',
     detail: 'Clientes, mascotas y citas + login con roles',
   },
-  { id: 3, title: 'Frontend con React', detail: 'Vite + login contra el backend' },
+  {
+    id: 3,
+    title: 'Frontend con React',
+    detail: 'Login y pantallas CRUD contra el backend',
+  },
 ]
 
 const STACK = ['React', 'Vite', 'Flask', 'SQLAlchemy', 'JWT']
+
+const TABS = [
+  { id: 'clients', label: 'Clientes' },
+  { id: 'pets', label: 'Mascotas' },
+  { id: 'appointments', label: 'Citas' },
+]
 
 function StatusBadge({ state }) {
   const label = {
@@ -34,6 +48,7 @@ function App() {
   const [state, setState] = useState('loading')
   const [detail, setDetail] = useState('')
   const [user, setUser] = useState(() => (getToken() ? getStoredUser() : null))
+  const [view, setView] = useState('clients')
 
   useEffect(() => {
     getHealth()
@@ -52,6 +67,9 @@ function App() {
     setUser(null)
   }
 
+  const canDelete = user?.role === 'admin'
+  const pageProps = { canDelete, onUnauthorized: handleLogout }
+
   return (
     <div id="page">
       <header id="hero">
@@ -66,17 +84,41 @@ function App() {
       </header>
 
       {user ? (
-        <section className="card">
-          <h2>Sesión iniciada</h2>
-          <p className="session-info">
-            {user.name} · <span className="pill pill--role">{user.role}</span>
-          </p>
-          <button type="button" className="login-submit" onClick={handleLogout}>
-            Cerrar sesión
-          </button>
+        <section className="card card--wide">
+          <div className="session-bar">
+            <p className="session-info">
+              {user.name} · <span className="pill pill--role">{user.role}</span>
+            </p>
+            <button type="button" className="login-submit" onClick={handleLogout}>
+              Cerrar sesión
+            </button>
+          </div>
+
+          {user.role === 'client' ? (
+            <ClientDashboard onUnauthorized={handleLogout} />
+          ) : (
+            <>
+              <nav className="tabs">
+                {TABS.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    className={`tab ${view === tab.id ? 'tab--active' : ''}`}
+                    onClick={() => setView(tab.id)}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </nav>
+
+              {view === 'clients' && <ClientsPage {...pageProps} />}
+              {view === 'pets' && <PetsPage {...pageProps} />}
+              {view === 'appointments' && <AppointmentsPage {...pageProps} />}
+            </>
+          )}
         </section>
       ) : (
-        <Login onSuccess={setUser} />
+        <AuthGate onSuccess={setUser} />
       )}
 
       <section className="card">

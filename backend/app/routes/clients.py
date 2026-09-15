@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt, jwt_required
 
 from app.auth import role_required
 from app.errors import bad_request, not_found
@@ -12,12 +12,17 @@ clients_bp = Blueprint('clients', __name__, url_prefix='/clients')
 @clients_bp.route('', methods=['GET'])
 @jwt_required()
 def list_clients():
+    claims = get_jwt()
+    if claims.get('role') == 'client':
+        client = db.session.get(Client, claims.get('client_id'))
+        return jsonify([client.to_dict()] if client else [])
+
     clients = Client.query.order_by(Client.id).all()
     return jsonify([c.to_dict() for c in clients])
 
 
 @clients_bp.route('', methods=['POST'])
-@jwt_required()
+@role_required('admin', 'vet')
 def create_client():
     data = request.get_json(silent=True) or {}
     name = (data.get('name') or '').strip()
@@ -40,6 +45,10 @@ def create_client():
 @clients_bp.route('/<int:client_id>', methods=['GET'])
 @jwt_required()
 def get_client(client_id):
+    claims = get_jwt()
+    if claims.get('role') == 'client' and claims.get('client_id') != client_id:
+        return jsonify(error='No tenés permisos para ver este cliente'), 403
+
     client = db.session.get(Client, client_id)
     if not client:
         return not_found('Cliente no encontrado')
@@ -47,7 +56,7 @@ def get_client(client_id):
 
 
 @clients_bp.route('/<int:client_id>', methods=['PUT'])
-@jwt_required()
+@role_required('admin', 'vet')
 def update_client(client_id):
     client = db.session.get(Client, client_id)
     if not client:
