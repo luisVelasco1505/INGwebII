@@ -1,19 +1,28 @@
 openapi: 3.0.3
 info:
-  title: Sistema de Gestión de Proyectos y Tareas
-  description: API REST para gestión de proyectos y tareas.
+  title: Sistema de Control Veterinario
+  description: >
+    API REST para que una clínica veterinaria gestione clientes (dueños de
+    mascotas), mascotas y el historial de citas/consultas. Requiere
+    autenticación JWT; solo el rol admin puede eliminar registros.
   version: 0.1.0
 
 servers:
   - url: http://127.0.0.1:5000
     description: Servidor de desarrollo local
 
+tags:
+  - name: Health
+  - name: Auth
+  - name: Clients
+  - name: Pets
+  - name: Appointments
+
 paths:
   /health:
     get:
       summary: Verifica el estado del servidor
-      tags:
-        - Health
+      tags: [Health]
       responses:
         '200':
           description: El servidor está funcionando correctamente
@@ -25,3 +34,506 @@ paths:
                   status:
                     type: string
                     example: ok
+
+  /auth/register:
+    post:
+      summary: Registra un nuevo usuario (veterinario)
+      description: El registro público siempre crea usuarios con rol "vet".
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '201':
+          description: Usuario creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/login:
+    post:
+      summary: Inicia sesión y devuelve un token JWT
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Credenciales inválidas
+
+  /clients:
+    get:
+      summary: Lista los clientes
+      tags: [Clients]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Lista de clientes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Client'
+    post:
+      summary: Crea un cliente
+      tags: [Clients]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientInput'
+      responses:
+        '201':
+          description: Cliente creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /clients/{clientId}:
+    parameters:
+      - $ref: '#/components/parameters/ClientId'
+    get:
+      summary: Obtiene un cliente
+      tags: [Clients]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Cliente encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Actualiza un cliente
+      tags: [Clients]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientInput'
+      responses:
+        '200':
+          description: Cliente actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Elimina un cliente (solo admin)
+      tags: [Clients]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204':
+          description: Cliente eliminado
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /pets:
+    get:
+      summary: Lista las mascotas
+      tags: [Pets]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: client_id
+          in: query
+          schema:
+            type: integer
+          description: Filtra por dueño
+      responses:
+        '200':
+          description: Lista de mascotas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pet'
+    post:
+      summary: Crea una mascota asociada a un cliente
+      tags: [Pets]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetInput'
+      responses:
+        '201':
+          description: Mascota creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /pets/{petId}:
+    parameters:
+      - $ref: '#/components/parameters/PetId'
+    get:
+      summary: Obtiene una mascota
+      tags: [Pets]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Mascota encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Actualiza una mascota
+      tags: [Pets]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetInput'
+      responses:
+        '200':
+          description: Mascota actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Elimina una mascota (solo admin)
+      tags: [Pets]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204':
+          description: Mascota eliminada
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /appointments:
+    get:
+      summary: Lista las citas/consultas
+      tags: [Appointments]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: pet_id
+          in: query
+          schema:
+            type: integer
+          description: Filtra por mascota
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pendiente, atendida, cancelada]
+      responses:
+        '200':
+          description: Lista de citas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Appointment'
+    post:
+      summary: Crea una cita para una mascota
+      tags: [Appointments]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentInput'
+      responses:
+        '201':
+          description: Cita creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /appointments/{appointmentId}:
+    parameters:
+      - $ref: '#/components/parameters/AppointmentId'
+    get:
+      summary: Obtiene una cita
+      tags: [Appointments]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Cita encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Actualiza una cita (diagnóstico, tratamiento, estado, etc.)
+      tags: [Appointments]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentInput'
+      responses:
+        '200':
+          description: Cita actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Elimina una cita (solo admin)
+      tags: [Appointments]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204':
+          description: Cita eliminada
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    ClientId:
+      name: clientId
+      in: path
+      required: true
+      schema:
+        type: integer
+    PetId:
+      name: petId
+      in: path
+      required: true
+      schema:
+        type: integer
+    AppointmentId:
+      name: appointmentId
+      in: path
+      required: true
+      schema:
+        type: integer
+
+  responses:
+    BadRequest:
+      description: Datos inválidos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: El usuario autenticado no tiene permisos para esta acción
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, vet]
+        created_at:
+          type: string
+          format: date-time
+
+    Client:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    ClientInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+
+    Pet:
+      type: object
+      properties:
+        id:
+          type: integer
+        client_id:
+          type: integer
+        name:
+          type: string
+        species:
+          type: string
+          enum: [perro, gato, otro]
+        breed:
+          type: string
+        age:
+          type: integer
+        weight:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+
+    PetInput:
+      type: object
+      required: [name, species, client_id]
+      properties:
+        client_id:
+          type: integer
+        name:
+          type: string
+        species:
+          type: string
+          enum: [perro, gato, otro]
+        breed:
+          type: string
+        age:
+          type: integer
+        weight:
+          type: number
+
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: integer
+        pet_id:
+          type: integer
+        date:
+          type: string
+          format: date-time
+        reason:
+          type: string
+        diagnosis:
+          type: string
+        treatment:
+          type: string
+        status:
+          type: string
+          enum: [pendiente, atendida, cancelada]
+        created_at:
+          type: string
+          format: date-time
+
+    AppointmentInput:
+      type: object
+      required: [pet_id, date, reason]
+      properties:
+        pet_id:
+          type: integer
+        date:
+          type: string
+          format: date-time
+        reason:
+          type: string
+        diagnosis:
+          type: string
+        treatment:
+          type: string
+        status:
+          type: string
+          enum: [pendiente, atendida, cancelada]

@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react'
-import { getHealth } from './api'
+import { getHealth, getStoredUser, getToken, logout } from './api'
+import Login from './Login'
 import './App.css'
 
 const SESSIONS = [
   { id: 1, title: 'Entorno y primer backend', detail: 'Flask + /health' },
-  { id: 2, title: 'Arquitectura REST', detail: 'Blueprints + OpenAPI' },
-  { id: 3, title: 'Frontend con React', detail: 'Vite + fetch al backend' },
+  {
+    id: 2,
+    title: 'Modelo de datos y JWT',
+    detail: 'Clientes, mascotas y citas + login con roles',
+  },
+  { id: 3, title: 'Frontend con React', detail: 'Vite + login contra el backend' },
 ]
 
-const STACK = ['React', 'Vite', 'Flask', 'REST / JSON']
+const STACK = ['React', 'Vite', 'Flask', 'SQLAlchemy', 'JWT']
 
 function StatusBadge({ state }) {
   const label = {
@@ -28,6 +33,7 @@ function StatusBadge({ state }) {
 function App() {
   const [state, setState] = useState('loading')
   const [detail, setDetail] = useState('')
+  const [user, setUser] = useState(() => (getToken() ? getStoredUser() : null))
 
   useEffect(() => {
     getHealth()
@@ -41,17 +47,37 @@ function App() {
       })
   }, [])
 
+  function handleLogout() {
+    logout()
+    setUser(null)
+  }
+
   return (
     <div id="page">
       <header id="hero">
         <p className="eyebrow">Ingeniería Web II</p>
-        <h1>Sistema de Gestión de Proyectos y Tareas</h1>
+        <h1>Sistema de Control Veterinario</h1>
         <p className="lead">
-          Backend en Flask, frontend en React, comunicación vía REST/JSON.
+          Gestión de clientes, mascotas y citas para una clínica veterinaria.
+          Backend en Flask con autenticación JWT, frontend en React.
         </p>
         <StatusBadge state={state} />
         {detail && <code className="detail">{detail}</code>}
       </header>
+
+      {user ? (
+        <section className="card">
+          <h2>Sesión iniciada</h2>
+          <p className="session-info">
+            {user.name} · <span className="pill pill--role">{user.role}</span>
+          </p>
+          <button type="button" className="login-submit" onClick={handleLogout}>
+            Cerrar sesión
+          </button>
+        </section>
+      ) : (
+        <Login onSuccess={setUser} />
+      )}
 
       <section className="card">
         <h2>Progreso del proyecto</h2>
