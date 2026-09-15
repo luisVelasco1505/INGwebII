@@ -4,3 +4,7 @@ __pycache__/
 backend/.env
 *.db
 *.sqlite3
+
+# El requirements.txt real vive en backend/ — este de la raíz aparece por
+# error (ej. `pip freeze` corrido desde la raíz) y queda desactualizado.
+/requirements.txt
